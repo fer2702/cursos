@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="manifest" href="./manifest.json">
+
+<title>Plataforma de Cursos</title>
+
+<!-- Service Worker -->
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./service-worker.js")
+    .then(() => console.log("SW registrado"))
+    .catch(err => console.log("Error SW:", err));
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+
+<style>
+body {
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    background: #fff;
+}
+
+.header {
+    background: #2ecc71;
+    color: white;
+    text-align: center;
+    padding: 15px;
+    font-size: 22px;
+}
+
+.container {
+    max-width: 1000px;
+    margin: auto;
+    padding: 20px;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 5px;
+}
+
+.btn-green { background: #2ecc71; color: white; }
+.btn-yellow { background: #f1c40f; }
+.btn-red { background: #e74c3c; color: white; }
+
+.courses {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.course {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 15px;
+}
+
+.duration {
+    font-size: 0.9em;
+    color: #555;
+}
+
+#adminPanel {
+    display: none;
+    margin-top: 30px;
+}
+
+.item {
+    border-bottom: 1px solid #ddd;
+    padding: 10px;
+}
+
+@media (max-width: 600px) {
+    .header { font-size: 18px; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">🎓 Cursos Disponibles</div>
+
+<div class="container">
+
+<button class="btn-yellow" onclick="showAdmin()">⚙️ Admin</button>
+
+<div id="courseList" class="courses"></div>
+
+<div id="adminPanel">
+    <h2>📊 Inscripciones</h2>
+    <div id="adminList"></div>
+</div>
+
+</div>
+
+<script>
+
+// 🔥 VARIABLES (ARREGLADO)
+const courseList = document.getElementById("courseList");
+const adminPanel = document.getElementById("adminPanel");
+const adminList = document.getElementById("adminList");
+
+// 🔥 EMAILJS (comentado por ahora)
+// emailjs.init("TU_PUBLIC_KEY");
+
+// DB
+let db;
+
+const request = indexedDB.open("CursosDB", 1);
+
+request.onupgradeneeded = e => {
+    db = e.target.result;
+    db.createObjectStore("inscripciones", { keyPath: "id", autoIncrement: true });
+};
+
+request.onsuccess = e => {
+    db = e.target.result;
+};
+
+// CURSOS
+const courses = [
+    { name: "Excel Básico", duration: "2 semanas" },
+    { name: "Programación Web", duration: "1 mes" },
+    { name: "Marketing Digital", duration: "3 semanas" },
+    { name: "Diseño Gráfico", duration: "1 mes" }
+];
+
+// MOSTRAR
+function renderCourses() {
+    courseList.innerHTML = "";
+
+    courses.forEach((c, i) => {
+        courseList.innerHTML += `
+        <div class="course">
+            <h3>${c.name}</h3>
+            <p class="duration">⏱️ ${c.duration}</p>
+            <button class="btn-green" onclick="enroll(${i})">Inscribirse</button>
+        </div>`;
+    });
+}
+
+// INSCRIPCIÓN
+function enroll(index) {
+    const course = courses[index];
+
+    Swal.fire({
+        title: `Inscribirse a ${course.name}`,
+        html: `
+            <input id="name" class="swal2-input" placeholder="Nombre">
+            <input id="phone" class="swal2-input" placeholder="Celular">
+            <input id="email" class="swal2-input" placeholder="Correo">
+        `,
+        confirmButtonText: "Guardar",
+        showCancelButton: true,
+        preConfirm: () => {
+            const name = document.getElementById('name').value;
+            const phone = document.getElementById('phone').value;
+            const email = document.getElementById('email').value;
+
+            if (!name || !phone || !email) {
+                Swal.showValidationMessage("Completa todos los campos");
+                return false;
+            }
+
+            saveData({ name, phone, email, course: course.name });
+
+            return true;
+        }
+    }).then(res => {
+        if (res.isConfirmed) {
+            Swal.fire("Registrado", "Guardado correctamente", "success");
+        }
+    });
+}
+
+// GUARDAR
+function saveData(data) {
+    const tx = db.transaction(["inscripciones"], "readwrite");
+    tx.objectStore("inscripciones").add(data);
+}
+
+// ADMIN
+function showAdmin() {
+    const pass = prompt("Contraseña:");
+
+    if (pass !== "1234") {
+        alert("Acceso denegado");
+        return;
+    }
+
+    adminPanel.style.display = "block";
+    loadAdmin();
+}
+
+// CARGAR ADMIN
+function loadAdmin() {
+    adminList.innerHTML = "";
+
+    const store = db.transaction("inscripciones").objectStore("inscripciones");
+
+    store.openCursor().onsuccess = e => {
+        const cursor = e.target.result;
+
+        if (cursor) {
+            const d = cursor.value;
+
+            adminList.innerHTML += `
+            <div class="item">
+                👤 ${d.name}<br>
+                📱 ${d.phone}<br>
+                📧 ${d.email}<br>
+                🎓 ${d.course}
+                <button class="btn-red" onclick="deleteUser(${cursor.key})">Eliminar</button>
+            </div>
+            `;
+
+            cursor.continue();
+        }
+    };
+}
+
+// ELIMINAR
+function deleteUser(id) {
+    const tx = db.transaction("inscripciones", "readwrite");
+    tx.objectStore("inscripciones").delete(id);
+
+    tx.oncomplete = () => loadAdmin();
+}
+
+// INICIO
+renderCourses();
+
+</script>
+
+</body>
+</html>
