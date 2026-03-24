@@ -3,8 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <link rel="manifest" href="./manifest.json">
+
 <title>Plataforma de Cursos</title>
+
+<!-- Service Worker -->
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./service-worker.js")
+    .then(() => console.log("SW registrado"))
+    .catch(err => console.log("Error SW:", err));
+}
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
@@ -96,8 +107,13 @@ button {
 
 <script>
 
-// 🔥 INICIALIZAR EMAILJS
-emailjs.init("TU_PUBLIC_KEY"); // 👈 pega aquí tu Public Key
+// 🔥 VARIABLES (ARREGLADO)
+const courseList = document.getElementById("courseList");
+const adminPanel = document.getElementById("adminPanel");
+const adminList = document.getElementById("adminList");
+
+// 🔥 EMAILJS (comentado por ahora)
+// emailjs.init("TU_PUBLIC_KEY");
 
 // DB
 let db;
@@ -135,7 +151,7 @@ function renderCourses() {
     });
 }
 
-// INSCRIPCIÓN + EMAIL
+// INSCRIPCIÓN
 function enroll(index) {
     const course = courses[index];
 
@@ -158,21 +174,13 @@ function enroll(index) {
                 return false;
             }
 
-            // GUARDAR LOCAL
             saveData({ name, phone, email, course: course.name });
-
-            // 📧 ENVIAR EMAIL
-            emailjs.send("TU_SERVICE_ID", "TU_TEMPLATE_ID", {
-                user_name: name,
-                user_email: email,
-                course_name: course.name
-            });
 
             return true;
         }
     }).then(res => {
         if (res.isConfirmed) {
-            Swal.fire("Registrado", "Te enviamos un correo ✉️", "success");
+            Swal.fire("Registrado", "Guardado correctamente", "success");
         }
     });
 }
