@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<!-- PWA -->
 <link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/icono.png">
+<meta name="theme-color" content="#ffe08a">
 
 <title>Plataforma de Cursos</title>
 
@@ -107,13 +110,12 @@ button {
 
 <script>
 
-// 🔥 VARIABLES (ARREGLADO)
+// VARIABLES
 const courseList = document.getElementById("courseList");
 const adminPanel = document.getElementById("adminPanel");
 const adminList = document.getElementById("adminList");
 
-// 🔥 EMAILJS (comentado por ahora)
-// emailjs.init("TU_PUBLIC_KEY");
+// emailjs.init("TU_PUBLIC_KEY"); // opcional
 
 // DB
 let db;
