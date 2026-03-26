@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EduFlex Academy</title>
+
+<link rel="manifest" href="./manifest.json">
+
+<!-- EmailJS -->
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+
+<!-- SweetAlert -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #f5f6fa; /* blanco suave */
+    color: #222;
+}
+
+/* HEADER */
+.header {
+    background: #000;
+    color: #fff;
+    padding: 15px;
+    text-align: center;
+    font-size: 22px;
+    border-bottom: 3px solid #f1c40f;
+}
+
+/* NAVBAR */
+.navbar {
+    background: #111;
+    padding: 10px;
+    text-align: right;
+}
+
+.navbar button {
+    width: auto;
+    padding: 8px 15px;
+}
+
+/* CONTENEDOR */
+.container {
+    max-width: 1000px;
+    margin: auto;
+    padding: 20px;
+    text-align: center;
+}
+
+/* BOTONES */
+button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.2s ease;
+}
+
+/* BOTONES COLORES */
+.btn-yellow {
+    background: #f1c40f;
+    color: #000;
+}
+
+.btn-yellow:hover {
+    transform: scale(1.03);
+    background: #d4ac0d;
+}
+
+.btn-red {
+    background: #e74c3c;
+    color: white;
+}
+
+.btn-red:hover {
+    transform: scale(1.03);
+    background: #c0392b;
+}
+
+.btn-dark {
+    background: #2c3e50;
+    color: white;
+}
+
+/* GRID CURSOS */
+.courses {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+/* TARJETAS */
+.course {
+    background: #fff;
+    border-radius: 12px;
+    padding: 18px;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    text-align: left;
+    transition: all 0.2s ease;
+}
+
+.course:hover {
+    transform: translateY(-5px);
+}
+
+/* TEXTO */
+.duration {
+    font-size: 0.85em;
+    color: #777;
+}
+
+.description {
+    font-size: 0.95em;
+    color: #444;
+    margin: 10px 0;
+}
+
+/* ADMIN ITEMS */
+.item {
+    background: #fff;
+    margin-top: 10px;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+/* VISTAS */
+.view { display: none; }
+.active { display: block; }
+
+
+@media (max-width: 600px) {
+    .header {
+        font-size: 18px;
+    }
+
+    button {
+        font-size: 14px;
+        padding: 10px;
+    }
+
+    .container {
+        padding: 15px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">⚡ EduFlex Academy</div>
+
+<div class="navbar" id="navbar" style="display:none;">
+    <button class="btn-red" onclick="goHome()">Salir</button>
+</div>
+
+<div class="container">
+
+<!-- INICIO -->
+<div id="home" class="view active">
+    <h2>Bienvenido </h2>
+    <p>Aprende fácil y rápido desde cualquier lugar</p>
+
+    <button class="btn-yellow" onclick="showCourses()">Ver Cursos</button>
+    <button class="btn-dark" onclick="showAdmin()">Admin</button>
+    <button class="btn-red" onclick="exitApp()">Salir</button>
+</div>
+
+<!-- CURSOS -->
+<div id="coursesView" class="view">
+    <h2>📚 Cursos Disponibles</h2>
+    <div id="courseList" class="courses"></div>
+</div>
+
+<!-- ADMIN -->
+<div id="adminView" class="view">
+    <h2>📊 Panel Admin</h2>
+
+    <button class="btn-yellow" onclick="addCourse()">Agregar Curso</button>
+
+    <h3>Inscripciones</h3>
+    <div id="adminList"></div>
+</div>
+
+</div>
+
+<script>
+
+// EMAILJS
+emailjs.init("ct_k6BUOVtLwHC9gJ");
+
+// NOTIFICACIONES
+if ("Notification" in window) {
+    Notification.requestPermission();
+}
+
+// DB
+let db;
+const request = indexedDB.open("CursosDB", 1);
+
+request.onupgradeneeded = e => {
+    db = e.target.result;
+    db.createObjectStore("inscripciones", { keyPath: "id", autoIncrement: true });
+};
+
+request.onsuccess = e => db = e.target.result;
+
+// CURSOS CON DESCRIPCIÓN
+let courses = [
+    { 
+        name: "Excel Básico", 
+        duration: "2 semanas",
+        description: "Aprende fórmulas, tablas y gráficos básicos."
+    },
+    { 
+        name: "Programación Web", 
+        duration: "1 mes",
+        description: "Crea páginas web con HTML, CSS y JavaScript."
+    },
+    { 
+        name: "Marketing Digital", 
+        duration: "3 semanas",
+        description: "Estrategias para redes sociales y ventas online."
+    }
+];
+
+// CAMBIAR VISTA
+function changeView(view) {
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    document.getElementById(view).classList.add("active");
+}
+
+function goHome() {
+    document.getElementById("navbar").style.display = "none";
+    changeView("home");
+}
+
+function showCourses() {
+    document.getElementById("navbar").style.display = "block";
+    changeView("coursesView");
+    renderCourses();
+}
+
+function showAdmin() {
+    const pass = prompt("Contraseña:");
+
+    if (pass !== "1234") {
+        alert("Acceso denegado");
+        return;
+    }
+
+    document.getElementById("navbar").style.display = "block";
+    changeView("adminView");
+    loadAdmin();
+}
+
+// MOSTRAR CURSOS
+function renderCourses() {
+    const list = document.getElementById("courseList");
+    list.innerHTML = "";
+
+    courses.forEach((c, i) => {
+        list.innerHTML += `
+        <div class="course">
+            <h3>${c.name}</h3>
+            <p class="duration">${c.duration}</p>
+            <p class="description">${c.description}</p>
+            <button class="btn-yellow" onclick="enroll(${i})">Inscribirse</button>
+        </div>`;
+    });
+}
+
+
+function enroll(index) {
+    const course = courses[index];
+
+    Swal.fire({
+        title: `Inscribirse`,
+        html: `
+            <input id="name" class="swal2-input" placeholder="Nombre">
+            <input id="phone" class="swal2-input" placeholder="Celular">
+            <input id="email" class="swal2-input" placeholder="Correo">
+        `,
+        showCancelButton: true,
+
+        preConfirm: () => {
+            const name = document.getElementById('name').value;
+            const phone = document.getElementById('phone').value;
+            const email = document.getElementById('email').value;
+
+            if (!name || !phone || !email) {
+                Swal.showValidationMessage("Completa todo");
+                return false;
+            }
+
+            // GUARDAR
+            saveData({ name, phone, email, course: course.name });
+
+            // EMAIL
+            emailjs.send("service_aw2qgyb", "template_0ixwvgv", {
+                user_name: name,
+                user_email: email,
+                course_name: course.name
+            });
+
+            // NOTIFICACIÓN
+            if (Notification.permission === "granted") {
+                new Notification("Inscripción exitosa!!Te hemos mandado un correo donde te dira los pasos a seguir para que puedas iniciar tus curso!");
+            }
+
+            // VIBRACIÓN
+            if (navigator.vibrate) {
+                navigator.vibrate(200);
+            }
+
+            return true;
+        }
+
+    }).then(res => {
+        if (res.isConfirmed) {
+            Swal.fire("Listo", "Inscripción exitosa!!Te enviamos un correo de como ingresar a tus cursos!!", "success");
+        }
+    });
+}
+
+// GUARDAR
+function saveData(data) {
+    const tx = db.transaction(["inscripciones"], "readwrite");
+    tx.objectStore("inscripciones").add(data);
+}
+
+// ADMIN
+function loadAdmin() {
+    const list = document.getElementById("adminList");
+    list.innerHTML = "";
+
+    const store = db.transaction("inscripciones").objectStore("inscripciones");
+
+    store.openCursor().onsuccess = e => {
+        const cursor = e.target.result;
+
+        if (cursor) {
+            const d = cursor.value;
+
+            list.innerHTML += `
+            <div class="item">
+                👤 ${d.name}<br>
+                📱 ${d.phone}<br>
+                📧 ${d.email}<br>
+                🎓 ${d.course}
+                <button class="btn-red" onclick="deleteUser(${cursor.key})">Eliminar</button>
+            </div>`;
+
+            cursor.continue();
+        }
+    };
+}
+
+// ELIMINAR
+function deleteUser(id) {
+    const tx = db.transaction("inscripciones", "readwrite");
+    tx.objectStore("inscripciones").delete(id);
+    tx.oncomplete = loadAdmin;
+}
+
+// AGREGAR CURSO
+function addCourse() {
+    Swal.fire({
+        title: "Nuevo Curso",
+        html: `
+            <input id="cname" class="swal2-input" placeholder="Nombre del curso">
+            <input id="cduration" class="swal2-input" placeholder="Duración">
+            <textarea id="cdesc" class="swal2-textarea" placeholder="Descripción"></textarea>
+        `,
+        preConfirm: () => {
+            const name = document.getElementById('cname').value;
+            const duration = document.getElementById('cduration').value;
+            const description = document.getElementById('cdesc').value;
+
+            if (!name || !duration || !description) {
+                Swal.showValidationMessage("Completa todo");
+                return false;
+            }
+
+            courses.push({ name, duration, description });
+        }
+    }).then(() => renderCourses());
+}
+
+// SALIR
+function exitApp() {
+    Swal.fire("Hasta luego ");
+}
+
+</script>
+
+</body>
+</html>
